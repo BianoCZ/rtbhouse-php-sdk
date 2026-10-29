@@ -1,3 +1,6 @@
+# v8.1.2.1
+Allow `guzzlehttp/guzzle` ^8.0 alongside ^7.5.0
+
 # v8.1.0
 Added `utcOffsetHours` parameter for `getRtbStats` and `getSummaryStats`
 

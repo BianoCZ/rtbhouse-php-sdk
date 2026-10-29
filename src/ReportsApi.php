@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace RTBHouse\ReportsApi;
 
 use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
+use GuzzleHttp\Exception\BadResponseException;
 use Psr\Http\Message\ResponseInterface;
 
 define('API_HOST', 'https://api.panel.rtbhouse.com');
@@ -98,7 +98,7 @@ class ReportsApiSession
 
         try {
             $res = $client->request('POST', 'auth/login', ['json' => ['login' => $this->_username, 'password' => $this->_password]]);
-        } catch (GuzzleRequestException $e) {
+        } catch (BadResponseException $e) {
             $this->_handleError($e);
         } catch (GuzzleException $e) {
             throw new ReportsApiException($e->getMessage());
@@ -125,23 +125,19 @@ class ReportsApiSession
      * @throws ReportsApiException
      * @throws ReportsApiRequestException
      */
-    protected function _handleError(GuzzleRequestException $e)
+    protected function _handleError(BadResponseException $e)
     {
-        if ($e->hasResponse()) {
-            $resp = $e->getResponse();
-            if ($resp->getStatusCode() === 410) {
-                $msg = 'Unsupported api version ('.API_VERSION.')';
-                $newestVersion = $this->_getNewestApiVersion($resp);
-                if ($newestVersion) {
-                    $msg .= ', use newest version ('.$newestVersion.') by updating rtbhouse_sdk package.';
-                }
-                throw new ReportsApiException($msg);
-            } else {
-                throw new ReportsApiRequestException($resp);
+        $resp = $e->getResponse();
+        if ($resp->getStatusCode() === 410) {
+            $msg = 'Unsupported api version ('.API_VERSION.')';
+            $newestVersion = $this->_getNewestApiVersion($resp);
+            if ($newestVersion) {
+                $msg .= ', use newest version ('.$newestVersion.') by updating rtbhouse_sdk package.';
             }
-        } else {
-            throw new ReportsApiException($e->getMessage());
+            throw new ReportsApiException($msg);
         }
+
+        throw new ReportsApiRequestException($resp);
     }
 
     protected function _validateResponse(ResponseInterface $res)
@@ -169,7 +165,7 @@ class ReportsApiSession
     {
         try {
             $res = $this->_session()->request('GET', $path, ['query' => $params]);
-        } catch (GuzzleRequestException $e) {
+        } catch (BadResponseException $e) {
             $this->_handleError($e);
         } catch (GuzzleException $e) {
             throw new ReportsApiException($e->getMessage());
